@@ -1,23 +1,17 @@
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /App
-
-# Copy everything
+WORKDIR /app
 COPY ./TodoApi/TodoApi.csproj ./TodoApi.csproj
-# Restore as distinct layers
 RUN dotnet restore
 
 COPY . ./
 WORKDIR /app/TodoApi
+RUN dotnet publish -c Release -o /app/out
 
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/out .
 
-# Build and publish a release
-RUN dotnet publish -o out
-
-# RUN dotnet publish -c Release -o /app/out
-
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
-WORKDIR /App
-COPY --from=build /App/out .
-EXPOSE 80
+ENV ASPNETCORE_URLS=http://+:80
 ENTRYPOINT ["dotnet", "TodoApi.dll"]
